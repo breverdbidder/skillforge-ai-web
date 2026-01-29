@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Library, Activity, GitBranch, BarChart3, BookOpen, Settings, History, Clock, Users } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { LayoutDashboard, LogOut, PanelLeft, Library, Activity, GitBranch, BarChart3, BookOpen, Settings, History, Clock, Users, Store, Bell } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -34,8 +35,10 @@ const menuItems = [
   { icon: GitBranch, label: "GitHub", path: "/github" },
   { icon: BarChart3, label: "Analytics", path: "/analytics" },
   { icon: History, label: "Execution History", path: "/execution-history" },
+  { icon: Store, label: "Marketplace", path: "/marketplace" },
   { icon: Clock, label: "Scheduling", path: "/scheduling" },
   { icon: Users, label: "Teams", path: "/teams" },
+  { icon: Bell, label: "Notifications", path: "/notifications" },
   { icon: BookOpen, label: "Documentation", path: "/docs" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
@@ -115,6 +118,7 @@ function DashboardLayoutContent({
   setSidebarWidth,
 }: DashboardLayoutContentProps) {
   const { user, logout } = useAuth();
+  const { data: unreadCount } = trpc.notifications.getUnreadCount.useQuery();
   const [location, setLocation] = useLocation();
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";

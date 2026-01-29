@@ -11,11 +11,18 @@ export const users = mysqlTable("users", {
    * Use this for relations between tables.
    */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
-  openId: varchar("openId", { length: 64 }).notNull().unique(),
+  /** OAuth identifier (openId for Manus, or provider-specific ID). Unique per user. */
+  openId: varchar("openId", { length: 255 }),
   name: text("name"),
-  email: varchar("email", { length: 320 }),
+  email: varchar("email", { length: 320 }).unique(),
+  /** Password hash for email/password authentication */
+  passwordHash: varchar("passwordHash", { length: 255 }),
+  /** OAuth provider: manus, google, github, local */
   loginMethod: varchar("loginMethod", { length: 64 }),
+  /** Google OAuth ID */
+  googleId: varchar("googleId", { length: 255 }),
+  /** GitHub OAuth ID */
+  githubId: varchar("githubId", { length: 255 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -137,6 +144,82 @@ export const scheduledTasks = mysqlTable("scheduled_tasks", {
 
 export type ScheduledTask = typeof scheduledTasks.$inferSelect;
 export type InsertScheduledTask = typeof scheduledTasks.$inferInsert;
+
+/**
+ * Skill Marketplace
+ */
+export const marketplaceSkills = mysqlTable("marketplaceSkills", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 64 }).notNull(),
+  tags: text("tags"),
+  authorId: int("authorId").notNull(),
+  authorName: varchar("authorName", { length: 128 }),
+  version: varchar("version", { length: 32 }).default("1.0.0").notNull(),
+  downloads: int("downloads").default(0).notNull(),
+  rating: int("rating").default(0).notNull(), // Average rating * 100 (e.g., 450 = 4.5 stars)
+  reviewCount: int("reviewCount").default(0).notNull(),
+  visibility: mysqlEnum("visibility", ["public", "private"]).default("public").notNull(),
+  code: text("code"), // Skill implementation code
+  parameters: text("parameters"), // JSON schema for parameters
+  examples: text("examples"), // Usage examples
+  readme: text("readme"), // Markdown documentation
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MarketplaceSkill = typeof marketplaceSkills.$inferSelect;
+export type InsertMarketplaceSkill = typeof marketplaceSkills.$inferInsert;
+
+export const skillReviews = mysqlTable("skillReviews", {
+  id: int("id").autoincrement().primaryKey(),
+  skillId: int("skillId").notNull(),
+  userId: int("userId").notNull(),
+  userName: varchar("userName", { length: 128 }),
+  rating: int("rating").notNull(), // 1-5 stars
+  comment: text("comment"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SkillReview = typeof skillReviews.$inferSelect;
+export type InsertSkillReview = typeof skillReviews.$inferInsert;
+
+export const installedSkills = mysqlTable("installedSkills", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  skillId: int("skillId").notNull(),
+  marketplaceSkillId: int("marketplaceSkillId"),
+  installedAt: timestamp("installedAt").defaultNow().notNull(),
+});
+
+export type InstalledSkill = typeof installedSkills.$inferSelect;
+export type InsertInstalledSkill = typeof installedSkills.$inferInsert;
+
+/**
+ * Notifications System
+ */
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  type: mysqlEnum("type", [
+    "task_completed",
+    "task_failed",
+    "team_invitation",
+    "skill_published",
+    "review_received",
+    "system_alert",
+  ]).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  message: text("message"),
+  link: varchar("link", { length: 512 }),
+  read: int("read").default(0).notNull(), // 0 = unread, 1 = read
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
 
 /**
  * Teams table - for multi-user collaboration

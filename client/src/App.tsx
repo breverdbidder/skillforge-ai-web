@@ -10,27 +10,40 @@ import SkillsLibrary from "./pages/SkillsLibrary";
 import SyncStatus from "./pages/SyncStatus";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
-import ExecutionHistory from "@/pages/ExecutionHistory";
+import ExecutionHistory from "./pages/ExecutionHistory";
+import Marketplace from "./pages/Marketplace";
 import Scheduling from "@/pages/Scheduling";
 import Teams from "@/pages/Teams";
+import Login from "@/pages/Login";
+import Notifications from "@/pages/Notifications";
 
 function Router() {
   return (
-    <DashboardLayout>
-      <Switch>
-        <Route path={"/"} component={Dashboard} />
+    <Switch>
+      {/* Public routes */}
+      <Route path="/login" component={Login} />
+      
+      {/* Protected routes with DashboardLayout */}
+      <Route>
+        <DashboardLayout>
+          <Switch>
+            <Route path={"/"} component={Dashboard} />
         <Route path={"/skills"} component={SkillsLibrary} />
         <Route path={"/sync"} component={SyncStatus} />
         <Route path={"/analytics"} component={Analytics} />
         <Route path={"/settings"} component={Settings} />
         <Route path="/execution-history" component={ExecutionHistory} />
+      <Route path="/marketplace" component={Marketplace} />
         <Route path="/scheduling" component={Scheduling} />
         <Route path="/teams" component={Teams} />
+        <Route path="/notifications" component={Notifications} />
         <Route path={"/404"} component={NotFound} />
         {/* Final fallback route */}
-        <Route component={NotFound} />
-      </Switch>
-    </DashboardLayout>
+            <Route component={NotFound} />
+          </Switch>
+        </DashboardLayout>
+      </Route>
+    </Switch>
   );
 }
 

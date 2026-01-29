@@ -108,3 +108,51 @@
 - [x] Teams UI page with management features
 - [x] Team creation/edit/delete
 - [x] Member invitation and management
+
+### Phase 11: GitHub Webhooks
+- [ ] Webhook receiver endpoint (/api/webhooks/github)
+- [ ] Webhook signature verification
+- [ ] Push event processing
+- [ ] Pull request event processing
+- [ ] Real-time activity updates
+- [ ] Webhook configuration UI
+- [ ] Webhook testing and debugging
+
+### Phase 12: Skill Marketplace
+- [x] Marketplace database schema (marketplace_skills, ratings, reviews)
+- [x] Skill publishing API
+- [x] Skill discovery and search API
+- [x] Rating and review system API
+- [x] One-click installation API
+- [ ] Marketplace UI with filters
+- [ ] Skill detail pages with reviews
+- [ ] User skill library management UI
+- [ ] Skill publishing form
+
+### Phase 13: Notification System
+- [ ] Notifications database schema
+- [ ] Email notification service (SMTP/SendGrid)
+- [ ] In-app notification API
+- [ ] Notification preferences management
+- [ ] Scheduled task completion notifications
+- [ ] Team invitation notifications
+- [ ] Execution failure alerts
+- [ ] In-app notification bell UI
+- [ ] Email templates for notifications
+
+### Phase 14: Final Deployment
+- [ ] Complete all UI implementations
+- [ ] Create API documentation (all endpoints including hidden)
+- [ ] Encode entire codebase as base64
+- [ ] Create GitHub repository
+- [ ] Push to GitHub with full documentation
+- [ ] Technology stack documentation
+
+### Phase 15: Multi-Provider Authentication
+- [ ] Gmail OAuth integration
+- [ ] GitHub OAuth integration  
+- [ ] Email/password authentication system
+- [ ] Login page with provider selection
+- [ ] OAuth callback handlers
+- [ ] User account linking
+- [ ] Session management for multiple providers

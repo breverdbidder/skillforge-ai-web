@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db-skills";
+import { getGitHubClient } from "./github-api";
 
 /**
  * Skills Router - Manages ClawdBot skills library
@@ -112,11 +113,37 @@ export const syncRouter = router({
  * GitHub Router - Manages GitHub integration
  */
 export const githubRouter = router({
-  // Get recent activity
+  // Get  // Get all activity (real GitHub API)
   activity: publicProcedure
-    .input(z.object({ limit: z.number().default(20) }))
+    .input(z.object({ limit: z.number().default(10) }))
     .query(async ({ input }) => {
-      return await db.getRecentGitHubActivity(input.limit);
+      try {
+        const client = await getGitHubClient();
+        const repos = [
+          { owner: "breverdbidder", repo: "skillforge-ai" },
+          { owner: "breverdbidder", repo: "kimi-kilo-craft-integration" },
+          { owner: "breverdbidder", repo: "skillforge-craft-extraction" },
+        ];
+        
+        const commits = await client.getCommitsFromRepos(repos, input.limit);
+        
+        // Transform to match our database schema
+        return commits.map((commit, index) => ({
+          id: index + 1,
+          repository: commit.repository,
+          branch: "main",
+          commitHash: commit.sha.substring(0, 7),
+          commitMessage: commit.message.split('\n')[0], // First line only
+          author: commit.author,
+          filesChanged: (commit.additions || 0) + (commit.deletions || 0) > 0 ? 1 : null,
+          status: "success" as const,
+          createdAt: new Date(commit.date),
+        }));
+      } catch (error) {
+        console.error("Failed to fetch GitHub activity:", error);
+        // Fallback to mock data if API fails
+        return [];
+      }
     }),
 
   // Get activity by repository

@@ -79,3 +79,32 @@
 - [ ] Accessibility improvements
 - [ ] Cross-browser testing
 - [ ] Create final checkpoint
+
+### Phase 8: Real GitHub Integration
+- [x] GitHub API client implementation
+- [x] Fetch live commit data from repositories
+- [ ] Pull request tracking and display
+- [ ] Repository statistics (stars, forks, issues)
+- [ ] Webhook support for real-time updates
+- [x] Rate limiting and error handling
+
+### Phase 9: Skill Scheduling
+- [x] Database schema for scheduled tasks
+- [x] Cron expression parser and validator
+- [x] Task scheduler service
+- [x] Upcoming executions calendar view
+- [x] Schedule management UI (create, edit, delete)
+- [ ] Execution queue and job processing
+- [ ] Schedule history and logs
+
+### Phase 10: Collaboration Features
+- [x] Team management database schema
+- [x] User invitation system
+- [x] Role-based permissions (owner, admin, member, viewer)
+- [x] Shared skill libraries (public, team, private)
+- [ ] Execution history visibility controls
+- [ ] Team activity feed
+- [x] Permission enforcement in API
+- [x] Teams UI page with management features
+- [x] Team creation/edit/delete
+- [x] Member invitation and management

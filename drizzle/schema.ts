@@ -116,3 +116,68 @@ export const executionHistory = mysqlTable("executionHistory", {
 
 export type ExecutionHistory = typeof executionHistory.$inferSelect;
 export type InsertExecutionHistory = typeof executionHistory.$inferInsert;
+
+/**
+ * Scheduled Tasks table - stores skill execution schedules
+ */
+export const scheduledTasks = mysqlTable("scheduled_tasks", {
+  id: int("id").autoincrement().primaryKey(),
+  skillId: varchar("skill_id", { length: 255 }).notNull(),
+  skillName: varchar("skill_name", { length: 255 }).notNull(),
+  cronExpression: varchar("cron_expression", { length: 100 }).notNull(),
+  parameters: text("parameters"), // JSON string
+  enabled: int("enabled").default(1).notNull(), // 1 = enabled, 0 = disabled
+  lastRun: timestamp("last_run"),
+  nextRun: timestamp("next_run"),
+  runCount: int("run_count").default(0).notNull(),
+  createdBy: int("created_by"), // user id
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ScheduledTask = typeof scheduledTasks.$inferSelect;
+export type InsertScheduledTask = typeof scheduledTasks.$inferInsert;
+
+/**
+ * Teams table - for multi-user collaboration
+ */
+export const teams = mysqlTable("teams", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  ownerId: int("owner_id").notNull(), // user id of team owner
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Team = typeof teams.$inferSelect;
+export type InsertTeam = typeof teams.$inferInsert;
+
+/**
+ * Team Members table - many-to-many relationship between users and teams
+ */
+export const teamMembers = mysqlTable("team_members", {
+  id: int("id").autoincrement().primaryKey(),
+  teamId: int("team_id").notNull(),
+  userId: int("user_id").notNull(),
+  role: mysqlEnum("role", ["owner", "admin", "member", "viewer"]).default("member").notNull(),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+});
+
+export type TeamMember = typeof teamMembers.$inferSelect;
+export type InsertTeamMember = typeof teamMembers.$inferInsert;
+
+/**
+ * Skill Shares table - controls who can access which skills
+ */
+export const skillShares = mysqlTable("skill_shares", {
+  id: int("id").autoincrement().primaryKey(),
+  skillId: varchar("skill_id", { length: 255 }).notNull(),
+  sharedWith: mysqlEnum("shared_with", ["public", "team", "private"]).default("private").notNull(),
+  teamId: int("team_id"), // null if public or private
+  ownerId: int("owner_id").notNull(), // user who owns/created the skill
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type SkillShare = typeof skillShares.$inferSelect;
+export type InsertSkillShare = typeof skillShares.$inferInsert;

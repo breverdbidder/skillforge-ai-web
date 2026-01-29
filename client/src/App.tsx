@@ -10,7 +10,9 @@ import SkillsLibrary from "./pages/SkillsLibrary";
 import SyncStatus from "./pages/SyncStatus";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
-import ExecutionHistory from "./pages/ExecutionHistory";
+import ExecutionHistory from "@/pages/ExecutionHistory";
+import Scheduling from "@/pages/Scheduling";
+import Teams from "@/pages/Teams";
 
 function Router() {
   return (
@@ -21,7 +23,9 @@ function Router() {
         <Route path={"/sync"} component={SyncStatus} />
         <Route path={"/analytics"} component={Analytics} />
         <Route path={"/settings"} component={Settings} />
-        <Route path={"/history"} component={ExecutionHistory} />
+        <Route path="/execution-history" component={ExecutionHistory} />
+        <Route path="/scheduling" component={Scheduling} />
+        <Route path="/teams" component={Teams} />
         <Route path={"/404"} component={NotFound} />
         {/* Final fallback route */}
         <Route component={NotFound} />

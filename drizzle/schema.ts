@@ -97,3 +97,22 @@ export const systemSettings = mysqlTable("systemSettings", {
 
 export type SystemSetting = typeof systemSettings.$inferSelect;
 export type InsertSystemSetting = typeof systemSettings.$inferInsert;
+
+/**
+ * Execution history table - tracks all skill executions
+ */
+export const executionHistory = mysqlTable("executionHistory", {
+  id: int("id").autoincrement().primaryKey(),
+  skillId: varchar("skillId", { length: 128 }).notNull(),
+  skillName: varchar("skillName", { length: 255 }).notNull(),
+  userId: int("userId").notNull(),
+  parameters: text("parameters"), // JSON string
+  result: text("result"), // JSON string
+  status: mysqlEnum("status", ["success", "failed", "pending"]).notNull(),
+  duration: int("duration"), // in milliseconds
+  errorMessage: text("errorMessage"),
+  executedAt: timestamp("executedAt").defaultNow().notNull(),
+});
+
+export type ExecutionHistory = typeof executionHistory.$inferSelect;
+export type InsertExecutionHistory = typeof executionHistory.$inferInsert;

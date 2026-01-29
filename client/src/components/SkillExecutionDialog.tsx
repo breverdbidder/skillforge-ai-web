@@ -40,22 +40,41 @@ export function SkillExecutionDialog({ skill, open, onOpenChange }: SkillExecuti
   const [parameters, setParameters] = useState<Record<string, string>>({});
   const [executionResult, setExecutionResult] = useState<any>(null);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [startTime, setStartTime] = useState(0);
+  
+  const createExecution = trpc.execution.create.useMutation();
 
   // Simulated execution for now
   const handleExecuteSkill = async () => {
     setIsExecuting(true);
     setExecutionResult(null);
+    setStartTime(Date.now());
     
     // Simulate API call
-    setTimeout(() => {
-      setExecutionResult({
+    setTimeout(async () => {
+      const executionTime = Date.now() - startTime;
+      const result = {
         success: true,
         message: "Skill executed successfully",
         data: parameters,
         timestamp: new Date().toISOString(),
-      });
+      };
+      
+      setExecutionResult(result);
       setIsExecuting(false);
       toast.success("Skill executed successfully!");
+      
+      // Save execution to history
+      if (skill) {
+        await createExecution.mutateAsync({
+          skillId: skill.skillId,
+          skillName: skill.name,
+        parameters: JSON.stringify(parameters),
+        result: JSON.stringify(result),
+        status: "success",
+          duration: executionTime,
+        });
+      }
     }, 2000);
   };
 

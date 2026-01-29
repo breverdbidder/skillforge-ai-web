@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { SkillExecutionDialog } from "@/components/SkillExecutionDialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,8 @@ import {
 export default function SkillsLibrary() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedSkill, setSelectedSkill] = useState<any>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data: skills, isLoading } = trpc.skills.list.useQuery();
   const { data: stats } = trpc.skills.statistics.useQuery();
@@ -133,7 +136,14 @@ export default function SkillsLibrary() {
                   </Badge>
                 </div>
 
-                <Button className="w-full" size="sm">
+                <Button 
+                  className="w-full" 
+                  size="sm"
+                  onClick={() => {
+                    setSelectedSkill(skill);
+                    setDialogOpen(true);
+                  }}
+                >
                   <Play className="h-4 w-4 mr-2" />
                   Execute Skill
                 </Button>
@@ -148,6 +158,12 @@ export default function SkillsLibrary() {
           </div>
         )}
       </div>
+
+      <SkillExecutionDialog
+        skill={selectedSkill}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 }

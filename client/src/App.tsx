@@ -7,6 +7,8 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import SkillsLibrary from "./pages/SkillsLibrary";
+import SyncStatus from "./pages/SyncStatus";
+import Analytics from "./pages/Analytics";
 
 function Router() {
   return (
@@ -14,6 +16,8 @@ function Router() {
       <Switch>
         <Route path={"/"} component={Dashboard} />
         <Route path={"/skills"} component={SkillsLibrary} />
+        <Route path={"/sync"} component={SyncStatus} />
+        <Route path={"/analytics"} component={Analytics} />
         <Route path={"/404"} component={NotFound} />
         {/* Final fallback route */}
         <Route component={NotFound} />

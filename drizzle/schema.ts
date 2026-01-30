@@ -1,26 +1,12 @@
 import { integer, pgEnum, pgTable, text, timestamp, varchar, serial } from "drizzle-orm/pg-core";
 
-// ============================================================================
-// ENUMS
-// ============================================================================
+/**
+ * Core user table backing auth flow.
+ * Columns use camelCase to match both database fields and generated types.
+ */
 export const roleEnum = pgEnum("role", ["user", "admin"]);
-export const sourceEnum = pgEnum("source", ["clawdbot", "kilo", "custom"]);
-export const syncTypeEnum = pgEnum("syncType", ["manual", "automatic"]);
-export const syncStatusEnum = pgEnum("syncStatus", ["success", "failed", "in_progress"]);
-export const ghActivityStatusEnum = pgEnum("ghActivityStatus", ["success", "failed"]);
-export const executionStatusEnum = pgEnum("executionStatus", ["success", "failed", "pending"]);
-export const visibilityEnum = pgEnum("visibility", ["public", "private"]);
-export const notificationTypeEnum = pgEnum("notificationType", [
-  "task_completed", "task_failed", "team_invitation", 
-  "skill_published", "review_received", "system_alert"
-]);
-export const teamRoleEnum = pgEnum("teamRole", ["owner", "admin", "member", "viewer"]);
-export const shareTypeEnum = pgEnum("shareType", ["public", "team", "private"]);
 
-// ============================================================================
-// CORE TABLES
-// ============================================================================
-export const users = pgTable("skillforge_users", {
+export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   openId: varchar("openId", { length: 255 }),
   name: text("name"),
@@ -38,7 +24,12 @@ export const users = pgTable("skillforge_users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-export const skills = pgTable("skillforge_skills", {
+/**
+ * Skills table - stores all ClawdBot skills
+ */
+export const sourceEnum = pgEnum("source", ["clawdbot", "kilo", "custom"]);
+
+export const skills = pgTable("skills", {
   id: serial("id").primaryKey(),
   skillId: varchar("skillId", { length: 128 }).notNull().unique(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -58,7 +49,13 @@ export const skills = pgTable("skillforge_skills", {
 export type Skill = typeof skills.$inferSelect;
 export type InsertSkill = typeof skills.$inferInsert;
 
-export const syncHistory = pgTable("skillforge_sync_history", {
+/**
+ * Sync history table
+ */
+export const syncTypeEnum = pgEnum("syncType", ["manual", "automatic"]);
+export const syncStatusEnum = pgEnum("syncStatus", ["success", "failed", "in_progress"]);
+
+export const syncHistory = pgTable("syncHistory", {
   id: serial("id").primaryKey(),
   syncType: syncTypeEnum("syncType").notNull(),
   status: syncStatusEnum("status").notNull(),
@@ -74,127 +71,57 @@ export const syncHistory = pgTable("skillforge_sync_history", {
 export type SyncHistory = typeof syncHistory.$inferSelect;
 export type InsertSyncHistory = typeof syncHistory.$inferInsert;
 
-export const githubActivity = pgTable("skillforge_github_activity", {
+/**
+ * GitHub activity table
+ */
+export const githubActivity = pgTable("githubActivity", {
   id: serial("id").primaryKey(),
-  repository: varchar("repository", { length: 255 }).notNull(),
-  commitHash: varchar("commitHash", { length: 64 }),
+  repo: varchar("repo", { length: 255 }).notNull(),
+  commitSha: varchar("commitSha", { length: 40 }),
   commitMessage: text("commitMessage"),
-  filesChanged: integer("filesChanged").default(0).notNull(),
-  author: varchar("author", { length: 128 }),
-  branch: varchar("branch", { length: 128 }).default("main").notNull(),
-  status: ghActivityStatusEnum("status").notNull(),
+  author: varchar("author", { length: 255 }),
+  timestamp: timestamp("timestamp").notNull(),
+  changedFiles: integer("changedFiles").default(0),
+  additions: integer("additions").default(0),
+  deletions: integer("deletions").default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export type GitHubActivity = typeof githubActivity.$inferSelect;
-export type InsertGitHubActivity = typeof githubActivity.$inferInsert;
+export type GithubActivity = typeof githubActivity.$inferSelect;
+export type InsertGithubActivity = typeof githubActivity.$inferInsert;
 
-export const systemSettings = pgTable("skillforge_system_settings", {
-  id: serial("id").primaryKey(),
-  settingKey: varchar("settingKey", { length: 128 }).notNull().unique(),
-  settingValue: text("settingValue").notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-});
+/**
+ * Execution history table
+ */
+export const executionStatusEnum = pgEnum("executionStatus", ["success", "failed", "running", "cancelled"]);
 
-export type SystemSetting = typeof systemSettings.$inferSelect;
-export type InsertSystemSetting = typeof systemSettings.$inferInsert;
-
-export const executionHistory = pgTable("skillforge_execution_history", {
+export const executionHistory = pgTable("executionHistory", {
   id: serial("id").primaryKey(),
   skillId: varchar("skillId", { length: 128 }).notNull(),
-  skillName: varchar("skillName", { length: 255 }).notNull(),
-  userId: integer("userId").notNull(),
-  parameters: text("parameters"),
-  result: text("result"),
+  userId: integer("userId"),
   status: executionStatusEnum("status").notNull(),
-  duration: integer("duration"),
+  input: text("input"),
+  output: text("output"),
   errorMessage: text("errorMessage"),
-  executedAt: timestamp("executedAt").defaultNow().notNull(),
+  duration: integer("duration"),
+  startedAt: timestamp("startedAt").notNull(),
+  completedAt: timestamp("completedAt"),
 });
 
 export type ExecutionHistory = typeof executionHistory.$inferSelect;
 export type InsertExecutionHistory = typeof executionHistory.$inferInsert;
 
-export const scheduledTasks = pgTable("skillforge_scheduled_tasks", {
+/**
+ * Notifications table
+ */
+export const notificationTypeEnum = pgEnum("notificationType", ["info", "success", "warning", "error"]);
+
+export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
-  skillId: varchar("skillId", { length: 255 }).notNull(),
-  skillName: varchar("skillName", { length: 255 }).notNull(),
-  cronExpression: varchar("cronExpression", { length: 100 }).notNull(),
-  parameters: text("parameters"),
-  enabled: integer("enabled").default(1).notNull(),
-  lastRun: timestamp("lastRun"),
-  nextRun: timestamp("nextRun"),
-  runCount: integer("runCount").default(0).notNull(),
-  createdBy: integer("createdBy"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-});
-
-export type ScheduledTask = typeof scheduledTasks.$inferSelect;
-export type InsertScheduledTask = typeof scheduledTasks.$inferInsert;
-
-// ============================================================================
-// MARKETPLACE TABLES
-// ============================================================================
-export const marketplaceSkills = pgTable("skillforge_marketplace_skills", {
-  id: serial("id").primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  description: text("description"),
-  category: varchar("category", { length: 64 }).notNull(),
-  tags: text("tags"),
-  authorId: integer("authorId").notNull(),
-  authorName: varchar("authorName", { length: 128 }),
-  version: varchar("version", { length: 32 }).default("1.0.0").notNull(),
-  downloads: integer("downloads").default(0).notNull(),
-  rating: integer("rating").default(0).notNull(),
-  reviewCount: integer("reviewCount").default(0).notNull(),
-  visibility: visibilityEnum("visibility").default("public").notNull(),
-  code: text("code"),
-  parameters: text("parameters"),
-  examples: text("examples"),
-  readme: text("readme"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-});
-
-export type MarketplaceSkill = typeof marketplaceSkills.$inferSelect;
-export type InsertMarketplaceSkill = typeof marketplaceSkills.$inferInsert;
-
-export const skillReviews = pgTable("skillforge_skill_reviews", {
-  id: serial("id").primaryKey(),
-  skillId: integer("skillId").notNull(),
-  userId: integer("userId").notNull(),
-  userName: varchar("userName", { length: 128 }),
-  rating: integer("rating").notNull(),
-  comment: text("comment"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-});
-
-export type SkillReview = typeof skillReviews.$inferSelect;
-export type InsertSkillReview = typeof skillReviews.$inferInsert;
-
-export const installedSkills = pgTable("skillforge_installed_skills", {
-  id: serial("id").primaryKey(),
-  userId: integer("userId").notNull(),
-  skillId: integer("skillId").notNull(),
-  marketplaceSkillId: integer("marketplaceSkillId"),
-  installedAt: timestamp("installedAt").defaultNow().notNull(),
-});
-
-export type InstalledSkill = typeof installedSkills.$inferSelect;
-export type InsertInstalledSkill = typeof installedSkills.$inferInsert;
-
-// ============================================================================
-// NOTIFICATIONS
-// ============================================================================
-export const notifications = pgTable("skillforge_notifications", {
-  id: serial("id").primaryKey(),
-  userId: integer("userId").notNull(),
-  type: notificationTypeEnum("type").notNull(),
+  userId: integer("userId"),
+  type: notificationTypeEnum("type").default("info").notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   message: text("message"),
-  link: varchar("link", { length: 512 }),
   read: integer("read").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -202,10 +129,10 @@ export const notifications = pgTable("skillforge_notifications", {
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
 
-// ============================================================================
-// TEAMS
-// ============================================================================
-export const teams = pgTable("skillforge_teams", {
+/**
+ * Teams table
+ */
+export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
@@ -217,25 +144,36 @@ export const teams = pgTable("skillforge_teams", {
 export type Team = typeof teams.$inferSelect;
 export type InsertTeam = typeof teams.$inferInsert;
 
-export const teamMembers = pgTable("skillforge_team_members", {
+/**
+ * Team members table
+ */
+export const teamRoleEnum = pgEnum("teamRole", ["owner", "admin", "member"]);
+
+export const teamMembers = pgTable("teamMembers", {
   id: serial("id").primaryKey(),
   teamId: integer("teamId").notNull(),
   userId: integer("userId").notNull(),
-  role: teamRoleEnum("role").default("member").notNull(),
+  role: teamRoleEnum("teamRole").default("member").notNull(),
   joinedAt: timestamp("joinedAt").defaultNow().notNull(),
 });
 
 export type TeamMember = typeof teamMembers.$inferSelect;
 export type InsertTeamMember = typeof teamMembers.$inferInsert;
 
-export const skillShares = pgTable("skillforge_skill_shares", {
+/**
+ * Scheduled tasks table
+ */
+export const scheduledTasks = pgTable("scheduledTasks", {
   id: serial("id").primaryKey(),
-  skillId: varchar("skillId", { length: 255 }).notNull(),
-  sharedWith: shareTypeEnum("sharedWith").default("private").notNull(),
-  teamId: integer("teamId"),
-  ownerId: integer("ownerId").notNull(),
+  skillId: varchar("skillId", { length: 128 }).notNull(),
+  userId: integer("userId"),
+  cronExpression: varchar("cronExpression", { length: 100 }),
+  enabled: integer("enabled").default(1).notNull(),
+  lastRun: timestamp("lastRun"),
+  nextRun: timestamp("nextRun"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
-export type SkillShare = typeof skillShares.$inferSelect;
-export type InsertSkillShare = typeof skillShares.$inferInsert;
+export type ScheduledTask = typeof scheduledTasks.$inferSelect;
+export type InsertScheduledTask = typeof scheduledTasks.$inferInsert;

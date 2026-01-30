@@ -169,6 +169,6 @@
 - [x] Seed 14 competitors (5 direct, 5 adjacent, 4 aspirational)
 - [x] Seed 19 features in feature matrix
 - [x] Verify all endpoints functional
-- [ ] Test Competitor Analyzer skill with local data
 - [ ] Redeploy skillforge-ai-web to Render
-- [ ] Verify production CI endpoints
+- [ ] Test Competitor Analyzer skill with local data
+- [ ] Verify production CI endpoints working

@@ -1,18 +1,21 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import * as schema from "../drizzle/schema";
 import { InsertUser, users } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import { ENV } from "./_core/env";
 
-let _db: ReturnType<typeof drizzle> | null = null;
+let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
 let _client: ReturnType<typeof postgres> | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _client = postgres(process.env.DATABASE_URL);
-      _db = drizzle(_client);
+      _client = postgres(process.env.DATABASE_URL, {
+        prepare: false, // Required for Supabase connection pooling
+      });
+      _db = drizzle(_client, { schema });
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -56,7 +59,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
         email: user.email ?? null,
         loginMethod: user.loginMethod ?? null,
         lastSignedIn: user.lastSignedIn ?? new Date(),
-        role: user.role ?? (user.openId === ENV.ownerOpenId ? 'admin' : 'user'),
+        role: user.role ?? (user.openId === ENV.ownerOpenId ? "admin" : "user"),
       };
       
       await db.insert(users).values(values);
@@ -91,4 +94,3 @@ export async function getUserByEmail(email: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.

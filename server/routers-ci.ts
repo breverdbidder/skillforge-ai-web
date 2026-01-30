@@ -3,7 +3,7 @@
  * Local data access for Competitor Analyzer skill
  */
 import type { Express, Request, Response } from "express";
-import { db } from "./db";
+import { getDb } from "./db";
 import { sql } from "drizzle-orm";
 
 export function registerCIRoutes(app: Express) {
@@ -18,24 +18,28 @@ export function registerCIRoutes(app: Express) {
    */
   app.get("/api/ci/competitors", async (req: Request, res: Response) => {
     try {
-      const { category } = req.query;
-      
-      let query = `SELECT * FROM ci_competitors`;
-      const params: string[] = [];
-      
-      if (category) {
-        query += ` WHERE category = $1`;
-        params.push(category as string);
+      const db = await getDb();
+      if (!db) {
+        return res.status(503).json({ success: false, error: "Database not available" });
       }
       
-      query += ` ORDER BY category, name`;
+      const { category } = req.query;
       
-      const result = await db.execute(sql.raw(query));
+      let result;
+      if (category) {
+        result = await db.execute(
+          sql`SELECT * FROM ci_competitors WHERE category = ${category} ORDER BY name`
+        );
+      } else {
+        result = await db.execute(
+          sql`SELECT * FROM ci_competitors ORDER BY category, name`
+        );
+      }
       
       res.json({
         success: true,
-        data: result.rows,
-        count: result.rows.length
+        data: result,
+        count: result.length
       });
     } catch (error) {
       console.error("Error fetching competitors:", error);
@@ -52,13 +56,18 @@ export function registerCIRoutes(app: Express) {
    */
   app.get("/api/ci/competitors/:id", async (req: Request, res: Response) => {
     try {
+      const db = await getDb();
+      if (!db) {
+        return res.status(503).json({ success: false, error: "Database not available" });
+      }
+      
       const { id } = req.params;
       
       const result = await db.execute(
         sql`SELECT * FROM ci_competitors WHERE id = ${id}`
       );
       
-      if (result.rows.length === 0) {
+      if (result.length === 0) {
         return res.status(404).json({ 
           success: false, 
           error: "Competitor not found" 
@@ -76,8 +85,8 @@ export function registerCIRoutes(app: Express) {
       res.json({
         success: true,
         data: {
-          ...result.rows[0],
-          latest_analysis: analysisResult.rows[0] || null
+          ...result[0],
+          latest_analysis: analysisResult[0] || null
         }
       });
     } catch (error) {
@@ -95,6 +104,11 @@ export function registerCIRoutes(app: Express) {
    */
   app.post("/api/ci/competitors", async (req: Request, res: Response) => {
     try {
+      const db = await getDb();
+      if (!db) {
+        return res.status(503).json({ success: false, error: "Database not available" });
+      }
+      
       const { id, name, domain, category, description, known_features, pricing, video_sources } = req.body;
       
       if (!id || !name || !category) {
@@ -109,7 +123,7 @@ export function registerCIRoutes(app: Express) {
           id, name, domain, category, description,
           known_features, pricing, video_sources
         ) VALUES (
-          ${id}, ${name}, ${domain}, ${category}, ${description},
+          ${id}, ${name}, ${domain || null}, ${category}, ${description || null},
           ${JSON.stringify(known_features || [])},
           ${JSON.stringify(pricing || {})},
           ${JSON.stringify(video_sources || [])}
@@ -145,21 +159,30 @@ export function registerCIRoutes(app: Express) {
    */
   app.get("/api/ci/feature-matrix", async (req: Request, res: Response) => {
     try {
-      const { category } = req.query;
-      
-      let query = `SELECT * FROM ci_feature_matrix`;
-      
-      if (category) {
-        query += ` WHERE feature_category = '${category}'`;
+      const db = await getDb();
+      if (!db) {
+        return res.status(503).json({ success: false, error: "Database not available" });
       }
       
-      query += ` ORDER BY feature_category, priority DESC, feature_name`;
+      const { category } = req.query;
       
-      const result = await db.execute(sql.raw(query));
+      let result;
+      if (category) {
+        result = await db.execute(
+          sql`SELECT * FROM ci_feature_matrix 
+              WHERE feature_category = ${category}
+              ORDER BY priority DESC, feature_name`
+        );
+      } else {
+        result = await db.execute(
+          sql`SELECT * FROM ci_feature_matrix 
+              ORDER BY feature_category, priority DESC, feature_name`
+        );
+      }
       
       // Transform to matrix format
       const matrix: Record<string, any[]> = {};
-      for (const row of result.rows) {
+      for (const row of result) {
         const cat = row.feature_category as string;
         if (!matrix[cat]) matrix[cat] = [];
         matrix[cat].push(row);
@@ -168,8 +191,8 @@ export function registerCIRoutes(app: Express) {
       res.json({
         success: true,
         data: matrix,
-        flat: result.rows,
-        count: result.rows.length
+        flat: result,
+        count: result.length
       });
     } catch (error) {
       console.error("Error fetching feature matrix:", error);
@@ -190,26 +213,38 @@ export function registerCIRoutes(app: Express) {
    */
   app.get("/api/ci/analyses", async (req: Request, res: Response) => {
     try {
-      const { competitor_id, limit = 10 } = req.query;
-      
-      let query = `
-        SELECT a.*, c.name as competitor_name, c.domain as competitor_domain
-        FROM ci_analyses a
-        JOIN ci_competitors c ON a.competitor_id = c.id
-      `;
-      
-      if (competitor_id) {
-        query += ` WHERE a.competitor_id = '${competitor_id}'`;
+      const db = await getDb();
+      if (!db) {
+        return res.status(503).json({ success: false, error: "Database not available" });
       }
       
-      query += ` ORDER BY a.created_at DESC LIMIT ${parseInt(limit as string) || 10}`;
+      const { competitor_id, limit = "10" } = req.query;
+      const limitNum = parseInt(limit as string) || 10;
       
-      const result = await db.execute(sql.raw(query));
+      let result;
+      if (competitor_id) {
+        result = await db.execute(sql`
+          SELECT a.*, c.name as competitor_name, c.domain as competitor_domain
+          FROM ci_analyses a
+          JOIN ci_competitors c ON a.competitor_id = c.id
+          WHERE a.competitor_id = ${competitor_id}
+          ORDER BY a.created_at DESC
+          LIMIT ${limitNum}
+        `);
+      } else {
+        result = await db.execute(sql`
+          SELECT a.*, c.name as competitor_name, c.domain as competitor_domain
+          FROM ci_analyses a
+          JOIN ci_competitors c ON a.competitor_id = c.id
+          ORDER BY a.created_at DESC
+          LIMIT ${limitNum}
+        `);
+      }
       
       res.json({
         success: true,
-        data: result.rows,
-        count: result.rows.length
+        data: result,
+        count: result.length
       });
     } catch (error) {
       console.error("Error fetching analyses:", error);
@@ -226,6 +261,11 @@ export function registerCIRoutes(app: Express) {
    */
   app.post("/api/ci/analyses", async (req: Request, res: Response) => {
     try {
+      const db = await getDb();
+      if (!db) {
+        return res.status(503).json({ success: false, error: "Database not available" });
+      }
+      
       const { 
         competitor_id, 
         analysis_type,
@@ -275,7 +315,7 @@ export function registerCIRoutes(app: Express) {
       
       res.json({ 
         success: true, 
-        data: { id: result.rows[0].id },
+        data: { id: result[0]?.id },
         message: "Analysis stored" 
       });
     } catch (error) {
@@ -297,6 +337,11 @@ export function registerCIRoutes(app: Express) {
    */
   app.get("/api/ci/summary", async (req: Request, res: Response) => {
     try {
+      const db = await getDb();
+      if (!db) {
+        return res.status(503).json({ success: false, error: "Database not available" });
+      }
+      
       const stats = await db.execute(sql`
         SELECT 
           (SELECT COUNT(*) FROM ci_competitors) as total_competitors,
@@ -305,8 +350,7 @@ export function registerCIRoutes(app: Express) {
           (SELECT COUNT(*) FROM ci_competitors WHERE category = 'aspirational') as aspirational,
           (SELECT COUNT(*) FROM ci_feature_matrix) as total_features,
           (SELECT COUNT(*) FROM ci_feature_matrix WHERE biddeed_status = 'available') as biddeed_features,
-          (SELECT COUNT(*) FROM ci_analyses) as total_analyses,
-          (SELECT COUNT(*) FROM ci_analyses WHERE created_at > NOW() - INTERVAL '7 days') as recent_analyses
+          (SELECT COUNT(*) FROM ci_analyses) as total_analyses
       `);
       
       const recentCompetitors = await db.execute(sql`
@@ -319,8 +363,8 @@ export function registerCIRoutes(app: Express) {
       res.json({
         success: true,
         data: {
-          stats: stats.rows[0],
-          recent_competitors: recentCompetitors.rows
+          stats: stats[0],
+          recent_competitors: recentCompetitors
         }
       });
     } catch (error) {
@@ -338,32 +382,50 @@ export function registerCIRoutes(app: Express) {
    */
   app.get("/api/ci/health", async (_req: Request, res: Response) => {
     try {
-      // Check if tables exist
-      const tableCheck = await db.execute(sql`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_name = 'ci_competitors'
-        ) as has_competitors,
-        EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_name = 'ci_feature_matrix'
-        ) as has_matrix,
-        EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_name = 'ci_analyses'
-        ) as has_analyses
-      `);
+      const db = await getDb();
       
-      const check = tableCheck.rows[0] as any;
-      const allTablesExist = check.has_competitors && check.has_matrix && check.has_analyses;
+      if (!db) {
+        return res.json({
+          success: true,
+          status: 'database_unavailable',
+          tables: {
+            ci_competitors: false,
+            ci_feature_matrix: false,
+            ci_analyses: false
+          },
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      // Check if tables exist by trying to count
+      let hasCompetitors = false;
+      let hasMatrix = false;
+      let hasAnalyses = false;
+      
+      try {
+        const c = await db.execute(sql`SELECT COUNT(*) as count FROM ci_competitors`);
+        hasCompetitors = true;
+      } catch (e) { /* table doesn't exist */ }
+      
+      try {
+        const m = await db.execute(sql`SELECT COUNT(*) as count FROM ci_feature_matrix`);
+        hasMatrix = true;
+      } catch (e) { /* table doesn't exist */ }
+      
+      try {
+        const a = await db.execute(sql`SELECT COUNT(*) as count FROM ci_analyses`);
+        hasAnalyses = true;
+      } catch (e) { /* table doesn't exist */ }
+      
+      const allTablesExist = hasCompetitors && hasMatrix && hasAnalyses;
       
       res.json({
         success: true,
         status: allTablesExist ? 'healthy' : 'tables_missing',
         tables: {
-          ci_competitors: check.has_competitors,
-          ci_feature_matrix: check.has_matrix,
-          ci_analyses: check.has_analyses
+          ci_competitors: hasCompetitors,
+          ci_feature_matrix: hasMatrix,
+          ci_analyses: hasAnalyses
         },
         timestamp: new Date().toISOString()
       });

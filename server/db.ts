@@ -38,11 +38,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 
   try {
-    // Check if user exists
     const existing = await db.select().from(users).where(eq(users.openId, user.openId)).limit(1);
     
     if (existing.length > 0) {
-      // Update existing user
       const updateSet: Record<string, unknown> = {
         lastSignedIn: new Date(),
       };
@@ -54,7 +52,6 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       
       await db.update(users).set(updateSet).where(eq(users.openId, user.openId));
     } else {
-      // Insert new user
       const values: InsertUser = {
         openId: user.openId,
         name: user.name ?? null,
@@ -80,7 +77,6 @@ export async function getUserByOpenId(openId: string) {
   }
 
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -92,9 +88,5 @@ export async function getUserByEmail(email: string) {
   }
 
   const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
-
-// TODO: add feature queries here as your schema grows.
-

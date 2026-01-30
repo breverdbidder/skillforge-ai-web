@@ -1,7 +1,9 @@
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { skills } from "./drizzle/schema.ts";
 
-const db = drizzle(process.env.DATABASE_URL);
+const client = postgres(process.env.DATABASE_URL);
+const db = drizzle(client);
 
 const sampleSkills = [
   {
@@ -48,36 +50,38 @@ const sampleSkills = [
     source: "clawdbot",
     enabled: 1,
     parameters: JSON.stringify({ topic: "string", tone: "string", length: "number" }),
-    usageExample: "Generate blog posts and social media content",
+    usageExample: "Generate blog posts on any topic",
     tags: JSON.stringify(["content", "ai", "writing"]),
     usageCount: 156,
   },
   {
-    skillId: "seo-analyzer",
-    name: "SEO Analyzer",
-    description: "Analyze and optimize content for search engines",
-    category: "Content",
+    skillId: "data-analyzer",
+    name: "Data Analyzer",
+    description: "Statistical analysis and visualization of datasets",
+    category: "Analytics",
     source: "clawdbot",
     enabled: 1,
-    parameters: JSON.stringify({ url: "string", keywords: "array" }),
-    usageExample: "Optimize website pages for SEO",
-    tags: JSON.stringify(["seo", "optimization", "marketing"]),
-    usageCount: 23,
-  },
-  {
-    skillId: "security-scanner",
-    name: "Security Scanner",
-    description: "Scan applications for vulnerabilities and security issues",
-    category: "Security",
-    source: "clawdbot",
-    enabled: 1,
-    parameters: JSON.stringify({ target: "string", depth: "number" }),
-    usageExample: "Identify security vulnerabilities in web apps",
-    tags: JSON.stringify(["security", "scanning", "vulnerabilities"]),
-    usageCount: 67,
+    parameters: JSON.stringify({ dataset: "file", metrics: "array" }),
+    usageExample: "Analyze sales data trends",
+    tags: JSON.stringify(["data", "analytics", "visualization"]),
+    usageCount: 89,
   },
 ];
 
-console.log("Seeding skills database...");
-await db.insert(skills).values(sampleSkills);
-console.log(`✓ Inserted ${sampleSkills.length} sample skills`);
+async function seed() {
+  console.log("Seeding skills...");
+  
+  for (const skill of sampleSkills) {
+    try {
+      await db.insert(skills).values(skill).onConflictDoNothing();
+      console.log(`  ✓ ${skill.name}`);
+    } catch (error) {
+      console.log(`  ✗ ${skill.name}: ${error.message}`);
+    }
+  }
+  
+  console.log("Done!");
+  await client.end();
+}
+
+seed().catch(console.error);

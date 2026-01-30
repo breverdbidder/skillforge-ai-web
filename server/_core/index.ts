@@ -11,6 +11,7 @@ import { serveStatic, setupVite } from "./vite";
 import webhookRouter from "../webhooks";
 import passport from "../auth/passport-config";
 import authRouter from "../auth";
+import { registerCIRoutes } from "../routers-ci";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -65,6 +66,10 @@ async function startServer() {
   
   // GitHub webhooks under /api/webhooks
   app.use("/api/webhooks", webhookRouter);
+  
+  // Competitive Intelligence API routes (local data)
+  registerCIRoutes(app);
+  
   // tRPC API
   app.use(
     "/api/trpc",

@@ -1,16 +1,18 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { integer, pgEnum, pgTable, text, timestamp, varchar, serial } from "drizzle-orm/pg-core";
 
 /**
  * Core user table backing auth flow.
  * Extend this file with additional tables as your product grows.
  * Columns use camelCase to match both database fields and generated types.
  */
-export const users = mysqlTable("users", {
+export const roleEnum = pgEnum("role", ["user", "admin"]);
+
+export const users = pgTable("users", {
   /**
    * Surrogate primary key. Auto-incremented numeric value managed by the database.
    * Use this for relations between tables.
    */
-  id: int("id").autoincrement().primaryKey(),
+  id: serial("id").primaryKey(),
   /** OAuth identifier (openId for Manus, or provider-specific ID). Unique per user. */
   openId: varchar("openId", { length: 255 }),
   name: text("name"),
@@ -23,9 +25,9 @@ export const users = mysqlTable("users", {
   googleId: varchar("googleId", { length: 255 }),
   /** GitHub OAuth ID */
   githubId: varchar("githubId", { length: 255 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: roleEnum("role").default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
@@ -35,38 +37,43 @@ export type InsertUser = typeof users.$inferInsert;
 /**
  * Skills table - stores all ClawdBot skills
  */
-export const skills = mysqlTable("skills", {
-  id: int("id").autoincrement().primaryKey(),
+export const sourceEnum = pgEnum("source", ["clawdbot", "kilo", "custom"]);
+
+export const skills = pgTable("skills", {
+  id: serial("id").primaryKey(),
   skillId: varchar("skillId", { length: 128 }).notNull().unique(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   category: varchar("category", { length: 64 }).notNull(),
-  source: mysqlEnum("source", ["clawdbot", "kilo", "custom"]).default("clawdbot").notNull(),
-  enabled: int("enabled").default(1).notNull(),
-  parameters: text("parameters"), // JSON string
+  source: sourceEnum("source").default("clawdbot").notNull(),
+  enabled: integer("enabled").default(1).notNull(),
+  parameters: text("parameters"),
   usageExample: text("usageExample"),
-  tags: text("tags"), // JSON array string
-  usageCount: int("usageCount").default(0).notNull(),
+  tags: text("tags"),
+  usageCount: integer("usageCount").default(0).notNull(),
   lastUsed: timestamp("lastUsed"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
 export type Skill = typeof skills.$inferSelect;
 export type InsertSkill = typeof skills.$inferInsert;
 
 /**
- * Sync history table - tracks all sync operations
+ * Sync history table
  */
-export const syncHistory = mysqlTable("syncHistory", {
-  id: int("id").autoincrement().primaryKey(),
-  syncType: mysqlEnum("syncType", ["manual", "automatic"]).notNull(),
-  status: mysqlEnum("status", ["success", "failed", "in_progress"]).notNull(),
-  skillsAdded: int("skillsAdded").default(0).notNull(),
-  skillsUpdated: int("skillsUpdated").default(0).notNull(),
-  skillsRemoved: int("skillsRemoved").default(0).notNull(),
+export const syncTypeEnum = pgEnum("syncType", ["manual", "automatic"]);
+export const syncStatusEnum = pgEnum("syncStatus", ["success", "failed", "in_progress"]);
+
+export const syncHistory = pgTable("syncHistory", {
+  id: serial("id").primaryKey(),
+  syncType: syncTypeEnum("syncType").notNull(),
+  status: syncStatusEnum("status").notNull(),
+  skillsAdded: integer("skillsAdded").default(0).notNull(),
+  skillsUpdated: integer("skillsUpdated").default(0).notNull(),
+  skillsRemoved: integer("skillsRemoved").default(0).notNull(),
   errorMessage: text("errorMessage"),
-  duration: int("duration"), // milliseconds
+  duration: integer("duration"),
   startedAt: timestamp("startedAt").notNull(),
   completedAt: timestamp("completedAt"),
 });
@@ -75,17 +82,17 @@ export type SyncHistory = typeof syncHistory.$inferSelect;
 export type InsertSyncHistory = typeof syncHistory.$inferInsert;
 
 /**
- * GitHub activity table - tracks commits and repository updates
+ * GitHub activity table
  */
-export const githubActivity = mysqlTable("githubActivity", {
-  id: int("id").autoincrement().primaryKey(),
-  repository: varchar("repository", { length: 255 }).notNull(),
-  commitHash: varchar("commitHash", { length: 64 }),
+export const githubActivity = pgTable("githubActivity", {
+  id: serial("id").primaryKey(),
+  repo: varchar("repo", { length: 255 }).notNull(),
+  commitSha: varchar("commitSha", { length: 40 }),
   commitMessage: text("commitMessage"),
-  filesChanged: int("filesChanged").default(0).notNull(),
-  author: varchar("author", { length: 128 }),
-  branch: varchar("branch", { length: 128 }).default("main").notNull(),
-  status: mysqlEnum("status", ["success", "failed"]).notNull(),
+  branch: varchar("branch", { length: 255 }),
+  eventType: varchar("eventType", { length: 64 }),
+  payload: text("payload"),
+  processedAt: timestamp("processedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -93,174 +100,115 @@ export type GitHubActivity = typeof githubActivity.$inferSelect;
 export type InsertGitHubActivity = typeof githubActivity.$inferInsert;
 
 /**
- * System settings table - stores configuration
+ * Notifications table
  */
-export const systemSettings = mysqlTable("systemSettings", {
-  id: int("id").autoincrement().primaryKey(),
-  settingKey: varchar("settingKey", { length: 128 }).notNull().unique(),
-  settingValue: text("settingValue").notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+export const notificationTypeEnum = pgEnum("notificationType", [
+  "skill_sync",
+  "github_webhook",
+  "execution",
+  "system",
+]);
+export const notificationStatusEnum = pgEnum("notificationStatus", ["unread", "read", "archived"]);
 
-export type SystemSetting = typeof systemSettings.$inferSelect;
-export type InsertSystemSetting = typeof systemSettings.$inferInsert;
-
-/**
- * Execution history table - tracks all skill executions
- */
-export const executionHistory = mysqlTable("executionHistory", {
-  id: int("id").autoincrement().primaryKey(),
-  skillId: varchar("skillId", { length: 128 }).notNull(),
-  skillName: varchar("skillName", { length: 255 }).notNull(),
-  userId: int("userId").notNull(),
-  parameters: text("parameters"), // JSON string
-  result: text("result"), // JSON string
-  status: mysqlEnum("status", ["success", "failed", "pending"]).notNull(),
-  duration: int("duration"), // in milliseconds
-  errorMessage: text("errorMessage"),
-  executedAt: timestamp("executedAt").defaultNow().notNull(),
-});
-
-export type ExecutionHistory = typeof executionHistory.$inferSelect;
-export type InsertExecutionHistory = typeof executionHistory.$inferInsert;
-
-/**
- * Scheduled Tasks table - stores skill execution schedules
- */
-export const scheduledTasks = mysqlTable("scheduled_tasks", {
-  id: int("id").autoincrement().primaryKey(),
-  skillId: varchar("skill_id", { length: 255 }).notNull(),
-  skillName: varchar("skill_name", { length: 255 }).notNull(),
-  cronExpression: varchar("cron_expression", { length: 100 }).notNull(),
-  parameters: text("parameters"), // JSON string
-  enabled: int("enabled").default(1).notNull(), // 1 = enabled, 0 = disabled
-  lastRun: timestamp("last_run"),
-  nextRun: timestamp("next_run"),
-  runCount: int("run_count").default(0).notNull(),
-  createdBy: int("created_by"), // user id
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
-});
-
-export type ScheduledTask = typeof scheduledTasks.$inferSelect;
-export type InsertScheduledTask = typeof scheduledTasks.$inferInsert;
-
-/**
- * Skill Marketplace
- */
-export const marketplaceSkills = mysqlTable("marketplaceSkills", {
-  id: int("id").autoincrement().primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  description: text("description"),
-  category: varchar("category", { length: 64 }).notNull(),
-  tags: text("tags"),
-  authorId: int("authorId").notNull(),
-  authorName: varchar("authorName", { length: 128 }),
-  version: varchar("version", { length: 32 }).default("1.0.0").notNull(),
-  downloads: int("downloads").default(0).notNull(),
-  rating: int("rating").default(0).notNull(), // Average rating * 100 (e.g., 450 = 4.5 stars)
-  reviewCount: int("reviewCount").default(0).notNull(),
-  visibility: mysqlEnum("visibility", ["public", "private"]).default("public").notNull(),
-  code: text("code"), // Skill implementation code
-  parameters: text("parameters"), // JSON schema for parameters
-  examples: text("examples"), // Usage examples
-  readme: text("readme"), // Markdown documentation
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
-
-export type MarketplaceSkill = typeof marketplaceSkills.$inferSelect;
-export type InsertMarketplaceSkill = typeof marketplaceSkills.$inferInsert;
-
-export const skillReviews = mysqlTable("skillReviews", {
-  id: int("id").autoincrement().primaryKey(),
-  skillId: int("skillId").notNull(),
-  userId: int("userId").notNull(),
-  userName: varchar("userName", { length: 128 }),
-  rating: int("rating").notNull(), // 1-5 stars
-  comment: text("comment"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
-
-export type SkillReview = typeof skillReviews.$inferSelect;
-export type InsertSkillReview = typeof skillReviews.$inferInsert;
-
-export const installedSkills = mysqlTable("installedSkills", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  skillId: int("skillId").notNull(),
-  marketplaceSkillId: int("marketplaceSkillId"),
-  installedAt: timestamp("installedAt").defaultNow().notNull(),
-});
-
-export type InstalledSkill = typeof installedSkills.$inferSelect;
-export type InsertInstalledSkill = typeof installedSkills.$inferInsert;
-
-/**
- * Notifications System
- */
-export const notifications = mysqlTable("notifications", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  type: mysqlEnum("type", [
-    "task_completed",
-    "task_failed",
-    "team_invitation",
-    "skill_published",
-    "review_received",
-    "system_alert",
-  ]).notNull(),
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").references(() => users.id),
+  type: notificationTypeEnum("type").notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   message: text("message"),
-  link: varchar("link", { length: 512 }),
-  read: int("read").default(0).notNull(), // 0 = unread, 1 = read
+  status: notificationStatusEnum("status").default("unread").notNull(),
+  metadata: text("metadata"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  readAt: timestamp("readAt"),
 });
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
 
 /**
- * Teams table - for multi-user collaboration
+ * Teams table
  */
-export const teams = mysqlTable("teams", {
-  id: int("id").autoincrement().primaryKey(),
+export const teams = pgTable("teams", {
+  id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
-  ownerId: int("owner_id").notNull(), // user id of team owner
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  ownerId: integer("ownerId").references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
 export type Team = typeof teams.$inferSelect;
 export type InsertTeam = typeof teams.$inferInsert;
 
 /**
- * Team Members table - many-to-many relationship between users and teams
+ * Team members junction table
  */
-export const teamMembers = mysqlTable("team_members", {
-  id: int("id").autoincrement().primaryKey(),
-  teamId: int("team_id").notNull(),
-  userId: int("user_id").notNull(),
-  role: mysqlEnum("role", ["owner", "admin", "member", "viewer"]).default("member").notNull(),
-  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+export const teamRoleEnum = pgEnum("teamRole", ["owner", "admin", "member"]);
+
+export const teamMembers = pgTable("teamMembers", {
+  id: serial("id").primaryKey(),
+  teamId: integer("teamId").references(() => teams.id).notNull(),
+  userId: integer("userId").references(() => users.id).notNull(),
+  role: teamRoleEnum("role").default("member").notNull(),
+  joinedAt: timestamp("joinedAt").defaultNow().notNull(),
 });
 
 export type TeamMember = typeof teamMembers.$inferSelect;
 export type InsertTeamMember = typeof teamMembers.$inferInsert;
 
 /**
- * Skill Shares table - controls who can access which skills
+ * Execution history table
  */
-export const skillShares = mysqlTable("skill_shares", {
-  id: int("id").autoincrement().primaryKey(),
-  skillId: varchar("skill_id", { length: 255 }).notNull(),
-  sharedWith: mysqlEnum("shared_with", ["public", "team", "private"]).default("private").notNull(),
-  teamId: int("team_id"), // null if public or private
-  ownerId: int("owner_id").notNull(), // user who owns/created the skill
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+export const executionStatusEnum = pgEnum("executionStatus", [
+  "pending",
+  "running",
+  "completed",
+  "failed",
+  "cancelled",
+]);
+
+export const executions = pgTable("executions", {
+  id: serial("id").primaryKey(),
+  skillId: varchar("skillId", { length: 128 }).notNull(),
+  userId: integer("userId").references(() => users.id),
+  status: executionStatusEnum("status").default("pending").notNull(),
+  input: text("input"),
+  output: text("output"),
+  error: text("error"),
+  duration: integer("duration"),
+  startedAt: timestamp("startedAt"),
+  completedAt: timestamp("completedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export type SkillShare = typeof skillShares.$inferSelect;
-export type InsertSkillShare = typeof skillShares.$inferInsert;
+export type Execution = typeof executions.$inferSelect;
+export type InsertExecution = typeof executions.$inferInsert;
+
+/**
+ * Scheduled tasks table
+ */
+export const scheduleFrequencyEnum = pgEnum("scheduleFrequency", [
+  "once",
+  "hourly",
+  "daily",
+  "weekly",
+  "monthly",
+]);
+
+export const scheduledTasks = pgTable("scheduledTasks", {
+  id: serial("id").primaryKey(),
+  skillId: varchar("skillId", { length: 128 }).notNull(),
+  userId: integer("userId").references(() => users.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  frequency: scheduleFrequencyEnum("frequency").notNull(),
+  cronExpression: varchar("cronExpression", { length: 100 }),
+  nextRunAt: timestamp("nextRunAt"),
+  lastRunAt: timestamp("lastRunAt"),
+  enabled: integer("enabled").default(1).notNull(),
+  input: text("input"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type ScheduledTask = typeof scheduledTasks.$inferSelect;
+export type InsertScheduledTask = typeof scheduledTasks.$inferInsert;

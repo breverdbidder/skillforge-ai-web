@@ -20,7 +20,7 @@ export const shareTypeEnum = pgEnum("shareType", ["public", "team", "private"]);
 // ============================================================================
 // CORE TABLES
 // ============================================================================
-export const users = pgTable("users", {
+export const users = pgTable("skillforge_users", {
   id: serial("id").primaryKey(),
   openId: varchar("openId", { length: 255 }),
   name: text("name"),
@@ -239,4 +239,3 @@ export const skillShares = pgTable("skill_shares", {
 
 export type SkillShare = typeof skillShares.$inferSelect;
 export type InsertSkillShare = typeof skillShares.$inferInsert;
-

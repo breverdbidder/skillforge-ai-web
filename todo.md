@@ -172,3 +172,69 @@
 - [ ] Redeploy skillforge-ai-web to Render
 - [ ] Test Competitor Analyzer skill with local data
 - [ ] Verify production CI endpoints working
+
+### Phase 25: Enterprise Marketplace Platform (Apify Model)
+- [ ] Update database schema with marketplace pricing models
+- [ ] Add execution units tracking and billing
+- [ ] Implement 4-tier pricing (Free, Creator $29, Professional $199, Enterprise $999)
+- [ ] Add creator revenue tracking (80% after 20% commission)
+- [ ] Implement $500 creator bonus program
+- [ ] Add skill quality badges (SkillForge 7/10+ validation)
+- [ ] Create featured skills management system
+- [ ] Build marketplace search with category filters
+- [ ] Add pay-per-execution pricing model
+- [ ] Implement skill rental pricing model
+
+### Phase 26: Skills + MCP Runtime Integration
+- [ ] Add Skills + MCP Runtime documentation section
+- [ ] Create architecture diagram showcase
+- [ ] Add progressive disclosure explanation
+- [ ] Document multiple skills from one MCP capability
+- [ ] Document multiple MCPs for one skill capability
+- [ ] Link to GitHub repository (skills-mcp-runtime)
+- [ ] Add runtime integration guides
+- [ ] Create skill execution workflow documentation
+
+### Phase 27: Creator Dashboard Enhancement
+- [ ] Build creator earnings dashboard
+- [ ] Add skill analytics and statistics
+- [ ] Implement skill upload and publishing flow
+- [ ] Add pricing configuration interface
+- [ ] Create execution tracking visualization
+- [ ] Add creator bonus status display
+- [ ] Implement skill validation workflow
+
+### Phase 28: Enterprise Features
+- [ ] Create enterprise features page
+- [ ] Add custom skill development services info
+- [ ] Document dedicated infrastructure options
+- [ ] Add SLA information
+- [ ] Create team collaboration features
+- [ ] Add private marketplace documentation
+- [ ] Implement enterprise contact form
+
+### Phase 29: Strategic Alignment Page
+- [ ] Create "The Apify for AI Agents" positioning page
+- [ ] Add business model comparison
+- [ ] Document GTM strategy highlights
+- [ ] Add competitive differentiation
+- [ ] Create revenue model projections
+- [ ] Add success metrics dashboard
+
+### Phase 30: Docker & Deployment
+- [ ] Create production Dockerfile
+- [ ] Add docker-compose.yml for full stack
+- [ ] Create deployment scripts
+- [ ] Add environment configuration templates
+- [ ] Document deployment to any cloud provider
+- [ ] Create backup and migration guides
+- [ ] Add monitoring and logging setup
+
+### Phase 31: Final Polish & Launch
+- [ ] Complete all vitest tests
+- [ ] Perform security audit
+- [ ] Optimize performance
+- [ ] Create comprehensive API documentation
+- [ ] Write deployment guide for skillforgeai.com
+- [ ] Push all changes to GitHub
+- [ ] Create launch checklist

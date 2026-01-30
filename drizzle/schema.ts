@@ -239,3 +239,146 @@ export const skillShares = pgTable("skill_shares", {
 
 export type SkillShare = typeof skillShares.$inferSelect;
 export type InsertSkillShare = typeof skillShares.$inferInsert;
+
+// ============================================================================
+// ENTERPRISE MARKETPLACE (Apify Model)
+// ============================================================================
+
+// Pricing model enums
+export const pricingModelEnum = pgEnum("pricingModel", ["free", "rental", "pay-per-execution"]);
+export const subscriptionTierEnum = pgEnum("subscriptionTier", ["free", "creator", "professional", "enterprise"]);
+export const payoutStatusEnum = pgEnum("payoutStatus", ["pending", "processing", "paid"]);
+export const bonusTypeEnum = pgEnum("bonusType", ["first_skill", "milestone", "referral"]);
+export const bonusStatusEnum = pgEnum("bonusStatus", ["pending", "approved", "paid"]);
+
+// Extended user fields for creators
+export const creatorProfiles = pgTable("creator_profiles", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().unique(),
+  isCreator: integer("isCreator").default(0).notNull(),
+  creatorBonusClaimed: integer("creatorBonusClaimed").default(0).notNull(),
+  stripeAccountId: varchar("stripeAccountId", { length: 255 }),
+  totalEarnings: integer("totalEarnings").default(0).notNull(), // in cents
+  totalSkills: integer("totalSkills").default(0).notNull(),
+  totalExecutions: integer("totalExecutions").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type CreatorProfile = typeof creatorProfiles.$inferSelect;
+export type InsertCreatorProfile = typeof creatorProfiles.$inferInsert;
+
+// Enhanced marketplace skills with pricing
+export const marketplaceSkillsPricing = pgTable("marketplace_skills_pricing", {
+  id: serial("id").primaryKey(),
+  skillId: integer("skillId").notNull().unique(),
+  pricingModel: pricingModelEnum("pricingModel").default("free").notNull(),
+  price: integer("price").default(0).notNull(), // in cents
+  executionUnitCost: integer("executionUnitCost").default(0).notNull(), // cost per EU in cents
+  
+  // Quality & validation
+  skillForgeScore: integer("skillForgeScore").default(0).notNull(),
+  isValidated: integer("isValidated").default(0).notNull(),
+  isFeatured: integer("isFeatured").default(0).notNull(),
+  
+  // MCP requirements
+  mcpRequirements: text("mcpRequirements"), // JSON array of MCP server names
+  
+  // GitHub integration
+  githubUrl: varchar("githubUrl", { length: 500 }),
+  
+  // Statistics
+  totalExecutions: integer("totalExecutions").default(0).notNull(),
+  totalRevenue: integer("totalRevenue").default(0).notNull(), // in cents
+  averageRating: integer("averageRating").default(0).notNull(), // rating * 100 for precision
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type MarketplaceSkillPricing = typeof marketplaceSkillsPricing.$inferSelect;
+export type InsertMarketplaceSkillPricing = typeof marketplaceSkillsPricing.$inferInsert;
+
+// Skill executions with billing
+export const skillExecutions = pgTable("skill_executions", {
+  id: serial("id").primaryKey(),
+  skillId: integer("skillId").notNull(),
+  userId: integer("userId").notNull(),
+  
+  // Execution details
+  status: executionStatusEnum("status").notNull(),
+  executionTime: integer("executionTime"), // milliseconds
+  executionUnits: integer("executionUnits").default(0).notNull(), // EU * 10000 for precision
+  cost: integer("cost").default(0).notNull(), // in cents
+  
+  // Error tracking
+  errorMessage: text("errorMessage"),
+  
+  executedAt: timestamp("executedAt").defaultNow().notNull(),
+});
+
+export type SkillExecution = typeof skillExecutions.$inferSelect;
+export type InsertSkillExecution = typeof skillExecutions.$inferInsert;
+
+// Creator earnings tracking (80% after 20% commission)
+export const creatorEarnings = pgTable("creator_earnings", {
+  id: serial("id").primaryKey(),
+  creatorId: integer("creatorId").notNull(),
+  skillId: integer("skillId").notNull(),
+  executionId: integer("executionId").notNull(),
+  
+  // Revenue breakdown
+  grossRevenue: integer("grossRevenue").notNull(), // in cents
+  platformCommission: integer("platformCommission").notNull(), // 20% in cents
+  netRevenue: integer("netRevenue").notNull(), // 80% in cents
+  
+  // Payout tracking
+  payoutStatus: payoutStatusEnum("payoutStatus").default("pending").notNull(),
+  payoutDate: timestamp("payoutDate"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CreatorEarning = typeof creatorEarnings.$inferSelect;
+export type InsertCreatorEarning = typeof creatorEarnings.$inferInsert;
+
+// User subscriptions for pricing tiers
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().unique(),
+  
+  // Subscription tier
+  tier: subscriptionTierEnum("tier").default("free").notNull(),
+  
+  // Usage tracking
+  monthlyExecutions: integer("monthlyExecutions").default(0).notNull(),
+  executionLimit: integer("executionLimit").notNull(), // Based on tier
+  
+  // Billing
+  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 255 }),
+  currentPeriodStart: timestamp("currentPeriodStart"),
+  currentPeriodEnd: timestamp("currentPeriodEnd"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = typeof subscriptions.$inferInsert;
+
+// Creator bonus program ($500 for first published skill)
+export const creatorBonuses = pgTable("creator_bonuses", {
+  id: serial("id").primaryKey(),
+  creatorId: integer("creatorId").notNull(),
+  
+  bonusType: bonusTypeEnum("bonusType").notNull(),
+  amount: integer("amount").notNull(), // in cents
+  
+  status: bonusStatusEnum("status").default("pending").notNull(),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  paidAt: timestamp("paidAt"),
+});
+
+export type CreatorBonus = typeof creatorBonuses.$inferSelect;
+export type InsertCreatorBonus = typeof creatorBonuses.$inferInsert;

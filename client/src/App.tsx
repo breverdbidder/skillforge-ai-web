@@ -16,6 +16,11 @@ import Scheduling from "@/pages/Scheduling";
 import Teams from "@/pages/Teams";
 import Login from "@/pages/Login";
 import PublicHome from "@/pages/PublicHome";
+import CreatorDashboard from "@/pages/CreatorDashboard";
+import Pricing from "@/pages/Pricing";
+import Documentation from "@/pages/Documentation";
+import Enterprise from "@/pages/Enterprise";
+import AdminPanel from "@/pages/AdminPanel";
 import Notifications from "@/pages/Notifications";
 
 function Router() {
@@ -23,6 +28,9 @@ function Router() {
     <Switch>
       {/* Public routes */}
       <Route path="/home" component={PublicHome} />
+      <Route path="/pricing" component={Pricing} />
+      <Route path="/docs" component={Documentation} />
+      <Route path="/enterprise" component={Enterprise} />
       <Route path="/login" component={Login} />
       
       {/* Protected routes with DashboardLayout */}
@@ -38,7 +46,9 @@ function Router() {
       <Route path="/marketplace" component={Marketplace} />
         <Route path="/scheduling" component={Scheduling} />
         <Route path="/teams" component={Teams} />
-        <Route path="/notifications" component={Notifications} />
+            <Route path="/notifications" component={Notifications} />
+            <Route path="/creator" component={CreatorDashboard} />
+            <Route path="/admin" component={AdminPanel} />
         <Route path={"/404"} component={NotFound} />
         {/* Final fallback route */}
             <Route component={NotFound} />

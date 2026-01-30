@@ -156,3 +156,19 @@
 - [ ] OAuth callback handlers
 - [ ] User account linking
 - [ ] Session management for multiple providers
+
+### Phase 24: Local Competitive Intelligence Solution
+- [x] Create ci_competitors database table schema
+- [x] Create ci_analyses database table schema  
+- [x] Create ci_feature_matrix database table schema
+- [x] Push migration SQL to GitHub (0002_add_ci_competitors.sql)
+- [x] Create seed-competitors.mjs with 14 competitors
+- [x] Create routers-ci.ts with 8 API endpoints
+- [x] Update server index.ts to register CI routes
+- [x] Run migration in Supabase (tables created)
+- [x] Seed 14 competitors (5 direct, 5 adjacent, 4 aspirational)
+- [x] Seed 19 features in feature matrix
+- [x] Verify all endpoints functional
+- [ ] Test Competitor Analyzer skill with local data
+- [ ] Redeploy skillforge-ai-web to Render
+- [ ] Verify production CI endpoints

@@ -15,12 +15,14 @@ import Marketplace from "./pages/Marketplace";
 import Scheduling from "@/pages/Scheduling";
 import Teams from "@/pages/Teams";
 import Login from "@/pages/Login";
+import PublicHome from "@/pages/PublicHome";
 import Notifications from "@/pages/Notifications";
 
 function Router() {
   return (
     <Switch>
       {/* Public routes */}
+      <Route path="/home" component={PublicHome} />
       <Route path="/login" component={Login} />
       
       {/* Protected routes with DashboardLayout */}

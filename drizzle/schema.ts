@@ -382,3 +382,90 @@ export const creatorBonuses = pgTable("creator_bonuses", {
 
 export type CreatorBonus = typeof creatorBonuses.$inferSelect;
 export type InsertCreatorBonus = typeof creatorBonuses.$inferInsert;
+
+// ============================================================================
+// TRAINING DATA & ANALYTICS
+// ============================================================================
+
+// User activity logging for ecosystem improvement
+export const userActivityLog = pgTable("user_activity_log", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  activityType: varchar("activityType", { length: 64 }).notNull(), // skill_execute, skill_search, skill_view, etc.
+  resourceType: varchar("resourceType", { length: 64 }), // skill, marketplace, dashboard, etc.
+  resourceId: varchar("resourceId", { length: 255 }),
+  metadata: text("metadata"), // JSON with additional context
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  userAgent: text("userAgent"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type UserActivityLog = typeof userActivityLog.$inferSelect;
+export type InsertUserActivityLog = typeof userActivityLog.$inferInsert;
+
+// Skill usage patterns for training
+export const skillUsagePatterns = pgTable("skill_usage_patterns", {
+  id: serial("id").primaryKey(),
+  skillId: integer("skillId").notNull(),
+  userId: integer("userId").notNull(),
+  
+  // Usage context
+  searchQuery: text("searchQuery"), // What user searched before using skill
+  previousSkills: text("previousSkills"), // JSON array of recently used skills
+  parameters: text("parameters"), // Anonymized parameters
+  
+  // Outcome
+  success: integer("success").notNull(),
+  executionTime: integer("executionTime"),
+  errorType: varchar("errorType", { length: 128 }),
+  
+  // User feedback
+  userRating: integer("userRating"), // Optional immediate rating
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type SkillUsagePattern = typeof skillUsagePatterns.$inferSelect;
+export type InsertSkillUsagePattern = typeof skillUsagePatterns.$inferInsert;
+
+// UI/UX interaction events
+export const uiInteractionEvents = pgTable("ui_interaction_events", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  
+  eventType: varchar("eventType", { length: 64 }).notNull(), // click, scroll, search, filter, etc.
+  component: varchar("component", { length: 128 }).notNull(), // Which UI component
+  action: varchar("action", { length: 128 }).notNull(), // Specific action taken
+  
+  // Context
+  pageUrl: varchar("pageUrl", { length: 512 }),
+  metadata: text("metadata"), // JSON with additional data
+  
+  // Timing
+  sessionId: varchar("sessionId", { length: 128 }),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+export type UIInteractionEvent = typeof uiInteractionEvents.$inferSelect;
+export type InsertUIInteractionEvent = typeof uiInteractionEvents.$inferInsert;
+
+// Aggregated analytics (privacy-preserving)
+export const aggregatedAnalytics = pgTable("aggregated_analytics", {
+  id: serial("id").primaryKey(),
+  
+  metricType: varchar("metricType", { length: 64 }).notNull(), // daily_active_users, skill_popularity, etc.
+  metricValue: integer("metricValue").notNull(),
+  
+  // Dimensions
+  dimension1: varchar("dimension1", { length: 128 }), // e.g., skill_category
+  dimension2: varchar("dimension2", { length: 128 }), // e.g., user_tier
+  
+  // Time period
+  periodStart: timestamp("periodStart").notNull(),
+  periodEnd: timestamp("periodEnd").notNull(),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AggregatedAnalytic = typeof aggregatedAnalytics.$inferSelect;
+export type InsertAggregatedAnalytic = typeof aggregatedAnalytics.$inferInsert;

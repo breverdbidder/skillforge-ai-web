@@ -238,3 +238,21 @@
 - [ ] Write deployment guide for skillforgeai.com
 - [ ] Push all changes to GitHub
 - [ ] Create launch checklist
+
+### Phase 32: Multi-Tenant Privacy Architecture
+- [ ] Implement strict data isolation per user
+- [ ] Add team-based access control enforcement
+- [ ] Create private workspace for each user
+- [ ] Ensure users can only see their own data + team data
+- [ ] Add permission checks to all API endpoints
+- [ ] Implement row-level security patterns
+
+### Phase 33: Training Data Collection Backend
+- [ ] Add activity logging for all user interactions
+- [ ] Track skill usage patterns (anonymized)
+- [ ] Log execution parameters and results
+- [ ] Capture UI/UX interaction events
+- [ ] Store training data in separate analytics tables
+- [ ] Implement data aggregation for ecosystem improvement
+- [ ] Add privacy-preserving analytics
+- [ ] Create data export for ML training pipelines

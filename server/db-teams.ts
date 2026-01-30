@@ -11,8 +11,8 @@ export async function createTeam(team: InsertTeam) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const [result] = await db.insert(teams).values(team);
-  const [created] = await db.select().from(teams).where(eq(teams.id, Number(result.insertId)));
+  const [result] = await db.insert(teams).values(team).$returningId();
+  const [created] = await db.select().from(teams).where(eq(teams.id, result.id));
   return created!;
 }
 
@@ -35,24 +35,25 @@ export async function getTeamsByMember(userId: number) {
   const db = await getDb();
   if (!db) return [];
 
-  const memberships = await db
-    .select()
-    .from(teamMembers)
-    .where(eq(teamMembers.userId, userId));
-
-  if (memberships.length === 0) return [];
-
-  const teamIds = memberships.map((m) => m.teamId);
-  const allTeams = await db.select().from(teams);
+  const memberTeams = await db.select().from(teamMembers).where(eq(teamMembers.userId, userId));
+  const teamIds = memberTeams.map(m => m.teamId);
   
-  return allTeams.filter((t) => teamIds.includes(t.id));
+  if (teamIds.length === 0) return [];
+  
+  const result = [];
+  for (const teamId of teamIds) {
+    const [team] = await db.select().from(teams).where(eq(teams.id, teamId));
+    if (team) result.push(team);
+  }
+  return result;
 }
 
 export async function updateTeam(id: number, updates: Partial<InsertTeam>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.update(teams).set(updates).where(eq(teams.id, id));
+  await db.update(teams).set({ ...updates, updatedAt: new Date() }).where(eq(teams.id, id));
+  return getTeamById(id);
 }
 
 export async function deleteTeam(id: number) {
@@ -61,10 +62,8 @@ export async function deleteTeam(id: number) {
 
   // Delete team members first
   await db.delete(teamMembers).where(eq(teamMembers.teamId, id));
-  
-  // Delete skill shares for this team
+  // Delete skill shares
   await db.delete(skillShares).where(eq(skillShares.teamId, id));
-  
   // Delete team
   await db.delete(teams).where(eq(teams.id, id));
 }
@@ -74,8 +73,8 @@ export async function addTeamMember(member: InsertTeamMember) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const [result] = await db.insert(teamMembers).values(member);
-  const [created] = await db.select().from(teamMembers).where(eq(teamMembers.id, Number(result.insertId)));
+  const [result] = await db.insert(teamMembers).values(member).$returningId();
+  const [created] = await db.select().from(teamMembers).where(eq(teamMembers.id, result.id));
   return created!;
 }
 
@@ -86,122 +85,58 @@ export async function getTeamMembers(teamId: number) {
   return db.select().from(teamMembers).where(eq(teamMembers.teamId, teamId));
 }
 
-export async function getTeamMember(teamId: number, userId: number) {
-  const db = await getDb();
-  if (!db) return null;
-
-  const [member] = await db
-    .select()
-    .from(teamMembers)
-    .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)));
-
-  return member || null;
-}
-
-export async function updateTeamMemberRole(teamId: number, userId: number, role: "owner" | "admin" | "member" | "viewer") {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  await db
-    .update(teamMembers)
-    .set({ role })
-    .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)));
-}
-
 export async function removeTeamMember(teamId: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db
-    .delete(teamMembers)
+  await db.delete(teamMembers).where(
+    and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId))
+  );
+}
+
+export async function updateMemberRole(teamId: number, userId: number, role: "owner" | "admin" | "member" | "viewer") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(teamMembers)
+    .set({ role })
     .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)));
 }
 
 // Skill Shares
-export async function createSkillShare(share: InsertSkillShare) {
+export async function shareSkill(share: InsertSkillShare) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const [result] = await db.insert(skillShares).values(share);
-  const [created] = await db.select().from(skillShares).where(eq(skillShares.id, Number(result.insertId)));
+  const [result] = await db.insert(skillShares).values(share).$returningId();
+  const [created] = await db.select().from(skillShares).where(eq(skillShares.id, result.id));
   return created!;
 }
 
-export async function getSkillShare(skillId: string) {
+export async function getSkillShares(skillId: string) {
   const db = await getDb();
-  if (!db) return null;
+  if (!db) return [];
 
-  const [share] = await db.select().from(skillShares).where(eq(skillShares.skillId, skillId));
-  return share || null;
+  return db.select().from(skillShares).where(eq(skillShares.skillId, skillId));
 }
 
-export async function updateSkillShare(
-  skillId: string,
-  updates: {
-    sharedWith?: "public" | "team" | "private";
-    teamId?: number | null;
-  }
-) {
+export async function updateSkillShare(id: number, updates: Partial<InsertSkillShare>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.update(skillShares).set(updates).where(eq(skillShares.skillId, skillId));
+  await db.update(skillShares).set(updates).where(eq(skillShares.id, id));
 }
 
-export async function deleteSkillShare(skillId: string) {
+export async function removeSkillShare(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.delete(skillShares).where(eq(skillShares.skillId, skillId));
+  await db.delete(skillShares).where(eq(skillShares.id, id));
 }
 
-/**
- * Check if user has access to a skill
- */
-export async function canAccessSkill(userId: number, skillId: string): Promise<boolean> {
+export async function getTeamSkillShares(teamId: number) {
   const db = await getDb();
-  if (!db) return false;
+  if (!db) return [];
 
-  const share = await getSkillShare(skillId);
-  
-  // If no share record, assume private and only owner can access
-  if (!share) return false;
-
-  // Public skills are accessible to everyone
-  if (share.sharedWith === "public") return true;
-
-  // Owner always has access
-  if (share.ownerId === userId) return true;
-
-  // Private skills only accessible to owner
-  if (share.sharedWith === "private") return false;
-
-  // Team skills accessible to team members
-  if (share.sharedWith === "team" && share.teamId) {
-    const member = await getTeamMember(share.teamId, userId);
-    return member !== null;
-  }
-
-  return false;
-}
-
-/**
- * Check if user has permission to perform action on team
- */
-export async function hasTeamPermission(
-  userId: number,
-  teamId: number,
-  requiredRole: "owner" | "admin" | "member" | "viewer"
-): Promise<boolean> {
-  const db = await getDb();
-  if (!db) return false;
-
-  const member = await getTeamMember(teamId, userId);
-  if (!member) return false;
-
-  const roleHierarchy = { owner: 4, admin: 3, member: 2, viewer: 1 };
-  const userLevel = roleHierarchy[member.role];
-  const requiredLevel = roleHierarchy[requiredRole];
-
-  return userLevel >= requiredLevel;
+  return db.select().from(skillShares).where(eq(skillShares.teamId, teamId));
 }

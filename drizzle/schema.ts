@@ -2,23 +2,24 @@ import { integer, pgEnum, pgTable, text, timestamp, varchar, serial } from "driz
 
 /**
  * Core user table backing auth flow.
- * Column names use snake_case in DB, camelCase in TypeScript.
+ * Columns use camelCase to match both database fields and generated types.
+ * Table name prefixed with skillforge_ to avoid conflicts with existing users table.
  */
 export const roleEnum = pgEnum("role", ["user", "admin"]);
 
 export const users = pgTable("skillforge_users", {
   id: serial("id").primaryKey(),
-  openId: varchar("open_id", { length: 255 }),
+  openId: varchar("openId", { length: 255 }),
   name: text("name"),
   email: varchar("email", { length: 320 }).unique(),
-  passwordHash: varchar("password_hash", { length: 255 }),
-  loginMethod: varchar("login_method", { length: 64 }),
-  googleId: varchar("google_id", { length: 255 }),
-  githubId: varchar("github_id", { length: 255 }),
+  passwordHash: varchar("passwordHash", { length: 255 }),
+  loginMethod: varchar("loginMethod", { length: 64 }),
+  googleId: varchar("googleId", { length: 255 }),
+  githubId: varchar("githubId", { length: 255 }),
   role: roleEnum("role").default("user").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  lastSignedIn: timestamp("last_signed_in").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
 export type User = typeof users.$inferSelect;
@@ -31,19 +32,19 @@ export const sourceEnum = pgEnum("source", ["clawdbot", "kilo", "custom"]);
 
 export const skills = pgTable("skillforge_skills", {
   id: serial("id").primaryKey(),
-  skillId: varchar("skill_id", { length: 128 }).notNull().unique(),
+  skillId: varchar("skillId", { length: 128 }).notNull().unique(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   category: varchar("category", { length: 64 }).notNull(),
   source: sourceEnum("source").default("clawdbot").notNull(),
   enabled: integer("enabled").default(1).notNull(),
   parameters: text("parameters"),
-  usageExample: text("usage_example"),
+  usageExample: text("usageExample"),
   tags: text("tags"),
-  usageCount: integer("usage_count").default(0).notNull(),
-  lastUsed: timestamp("last_used"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  usageCount: integer("usageCount").default(0).notNull(),
+  lastUsed: timestamp("lastUsed"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
 export type Skill = typeof skills.$inferSelect;
@@ -52,20 +53,20 @@ export type InsertSkill = typeof skills.$inferInsert;
 /**
  * Sync history table
  */
-export const syncTypeEnum = pgEnum("sync_type", ["manual", "automatic"]);
-export const syncStatusEnum = pgEnum("sync_status", ["success", "failed", "in_progress"]);
+export const syncTypeEnum = pgEnum("syncType", ["manual", "automatic"]);
+export const syncStatusEnum = pgEnum("syncStatus", ["success", "failed", "in_progress"]);
 
 export const syncHistory = pgTable("skillforge_sync_history", {
   id: serial("id").primaryKey(),
-  syncType: syncTypeEnum("sync_type").notNull(),
+  syncType: syncTypeEnum("syncType").notNull(),
   status: syncStatusEnum("status").notNull(),
-  skillsAdded: integer("skills_added").default(0).notNull(),
-  skillsUpdated: integer("skills_updated").default(0).notNull(),
-  skillsRemoved: integer("skills_removed").default(0).notNull(),
-  errorMessage: text("error_message"),
+  skillsAdded: integer("skillsAdded").default(0).notNull(),
+  skillsUpdated: integer("skillsUpdated").default(0).notNull(),
+  skillsRemoved: integer("skillsRemoved").default(0).notNull(),
+  errorMessage: text("errorMessage"),
   duration: integer("duration"),
-  startedAt: timestamp("started_at").notNull(),
-  completedAt: timestamp("completed_at"),
+  startedAt: timestamp("startedAt").notNull(),
+  completedAt: timestamp("completedAt"),
 });
 
 export type SyncHistory = typeof syncHistory.$inferSelect;
@@ -77,13 +78,13 @@ export type InsertSyncHistory = typeof syncHistory.$inferInsert;
 export const githubActivity = pgTable("skillforge_github_activity", {
   id: serial("id").primaryKey(),
   repo: varchar("repo", { length: 255 }).notNull(),
-  commitSha: varchar("commit_sha", { length: 40 }),
-  commitMessage: text("commit_message"),
+  commitSha: varchar("commitSha", { length: 40 }),
+  commitMessage: text("commitMessage"),
   branch: varchar("branch", { length: 255 }),
-  eventType: varchar("event_type", { length: 64 }),
+  eventType: varchar("eventType", { length: 64 }),
   payload: text("payload"),
-  processedAt: timestamp("processed_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  processedAt: timestamp("processedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
 export type GitHubActivity = typeof githubActivity.$inferSelect;
@@ -92,24 +93,24 @@ export type InsertGitHubActivity = typeof githubActivity.$inferInsert;
 /**
  * Notifications table
  */
-export const notificationTypeEnum = pgEnum("notification_type", [
+export const notificationTypeEnum = pgEnum("notificationType", [
   "skill_sync",
   "github_webhook",
   "execution",
   "system",
 ]);
-export const notificationStatusEnum = pgEnum("notification_status", ["unread", "read", "archived"]);
+export const notificationStatusEnum = pgEnum("notificationStatus", ["unread", "read", "archived"]);
 
 export const notifications = pgTable("skillforge_notifications", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
+  userId: integer("userId").references(() => users.id),
   type: notificationTypeEnum("type").notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   message: text("message"),
   status: notificationStatusEnum("status").default("unread").notNull(),
   metadata: text("metadata"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  readAt: timestamp("read_at"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  readAt: timestamp("readAt"),
 });
 
 export type Notification = typeof notifications.$inferSelect;
@@ -122,9 +123,9 @@ export const teams = pgTable("skillforge_teams", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
-  ownerId: integer("owner_id").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  ownerId: integer("ownerId").references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
 export type Team = typeof teams.$inferSelect;
@@ -133,14 +134,14 @@ export type InsertTeam = typeof teams.$inferInsert;
 /**
  * Team members junction table
  */
-export const teamRoleEnum = pgEnum("team_role", ["owner", "admin", "member"]);
+export const teamRoleEnum = pgEnum("teamRole", ["owner", "admin", "member"]);
 
 export const teamMembers = pgTable("skillforge_team_members", {
   id: serial("id").primaryKey(),
-  teamId: integer("team_id").references(() => teams.id).notNull(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  teamId: integer("teamId").references(() => teams.id).notNull(),
+  userId: integer("userId").references(() => users.id).notNull(),
   role: teamRoleEnum("role").default("member").notNull(),
-  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  joinedAt: timestamp("joinedAt").defaultNow().notNull(),
 });
 
 export type TeamMember = typeof teamMembers.$inferSelect;
@@ -149,7 +150,7 @@ export type InsertTeamMember = typeof teamMembers.$inferInsert;
 /**
  * Execution history table
  */
-export const executionStatusEnum = pgEnum("execution_status", [
+export const executionStatusEnum = pgEnum("executionStatus", [
   "pending",
   "running",
   "completed",
@@ -159,16 +160,16 @@ export const executionStatusEnum = pgEnum("execution_status", [
 
 export const executions = pgTable("skillforge_executions", {
   id: serial("id").primaryKey(),
-  skillId: varchar("skill_id", { length: 128 }).notNull(),
-  userId: integer("user_id").references(() => users.id),
+  skillId: varchar("skillId", { length: 128 }).notNull(),
+  userId: integer("userId").references(() => users.id),
   status: executionStatusEnum("status").default("pending").notNull(),
   input: text("input"),
   output: text("output"),
   error: text("error"),
   duration: integer("duration"),
-  startedAt: timestamp("started_at"),
-  completedAt: timestamp("completed_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  startedAt: timestamp("startedAt"),
+  completedAt: timestamp("completedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
 export type Execution = typeof executions.$inferSelect;
@@ -177,7 +178,7 @@ export type InsertExecution = typeof executions.$inferInsert;
 /**
  * Scheduled tasks table
  */
-export const scheduleFrequencyEnum = pgEnum("schedule_frequency", [
+export const scheduleFrequencyEnum = pgEnum("scheduleFrequency", [
   "once",
   "hourly",
   "daily",
@@ -187,17 +188,17 @@ export const scheduleFrequencyEnum = pgEnum("schedule_frequency", [
 
 export const scheduledTasks = pgTable("skillforge_scheduled_tasks", {
   id: serial("id").primaryKey(),
-  skillId: varchar("skill_id", { length: 128 }).notNull(),
-  userId: integer("user_id").references(() => users.id),
+  skillId: varchar("skillId", { length: 128 }).notNull(),
+  userId: integer("userId").references(() => users.id),
   name: varchar("name", { length: 255 }).notNull(),
   frequency: scheduleFrequencyEnum("frequency").notNull(),
-  cronExpression: varchar("cron_expression", { length: 100 }),
-  nextRunAt: timestamp("next_run_at"),
-  lastRunAt: timestamp("last_run_at"),
+  cronExpression: varchar("cronExpression", { length: 100 }),
+  nextRunAt: timestamp("nextRunAt"),
+  lastRunAt: timestamp("lastRunAt"),
   enabled: integer("enabled").default(1).notNull(),
   input: text("input"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
 export type ScheduledTask = typeof scheduledTasks.$inferSelect;
